@@ -1,6 +1,6 @@
 from tokenize import generate_tokens
-from tracker import Tracker
-from tokens import Tokens
+from .tracker import Tracker
+from .tokens import Tokens
 
 class Tokeniser(object):
     """Endpoint for tokenising a file"""

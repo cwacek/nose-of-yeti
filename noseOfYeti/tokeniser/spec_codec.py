@@ -1,13 +1,15 @@
 from tokenize import untokenize
 from encodings import utf_8
-import cStringIO
+import six
+import traceback
+from six import StringIO
 import encodings
 import codecs
 import re
 
-from imports import determine_imports
-from tokeniser import Tokeniser
-from config import Config
+from .imports import determine_imports
+from .tokeniser import Tokeniser
+from .config import Config
 
 regexes = {
       'whitespace' : re.compile('\s*')
@@ -28,11 +30,14 @@ class TokeniserCodec(object):
             def __init__(sr, stream, *args, **kwargs):
                 codecs.StreamReader.__init__(sr, stream, *args, **kwargs)
                 data = self.dealwith(sr.stream.readline)
-                sr.stream = cStringIO.StringIO(data)
+                sr.stream = StringIO(data)
 
         def decode(text, *args):
             """Used by pypy and pylint to deal with a spec file"""
-            buffered = cStringIO.StringIO(text)
+            if six.PY3:
+                text = text.tobytes().decode('utf8')
+
+            buffered = StringIO(text)
 
             # Determine if we need to have imports for this string
             # It may be a fragment of the file
@@ -41,8 +46,11 @@ class TokeniserCodec(object):
             buffered.seek(0)
 
             # Translate the text
-            utf8 = encodings.search_function('utf8') # Assume utf8 encoding
-            reader = utf8.streamreader(buffered)
+            if six.PY2:
+                utf8 = encodings.search_function('utf8') # Assume utf8 encoding
+                reader = utf8.streamreader(buffered)
+            else:
+                reader = buffered
             data = self.dealwith(reader.readline, no_imports=no_imports)
 
             # If nothing was changed, then we want to use the original file/line
@@ -56,10 +64,10 @@ class TokeniserCodec(object):
 
             # If text is empty and data isn't, then we should return text
             if len(text) == 0 and len(data) == 1:
-                return unicode(text), 0
+                return six.u(text), 0
 
             # Return translated version and it's length
-            return unicode(data), len(data)
+            return six.u(data), len(data)
 
         def search_function(s):
             """Determine if a file is of spec encoding and return special CodecInfo if it is"""
@@ -97,7 +105,7 @@ class TokeniserCodec(object):
                 lines.append("# %s" % line)
 
             # Create exception to put into code to announce error
-            exception = 'raise Exception("""--- internal spec codec error --- %s""")' % e
+            exception = 'raise Exception("""--- internal spec codec error --- %s""")' % traceback.format_exc()
 
             # Need to make sure the exception doesn't add a new line and put out line numberes
             if len(lines) == 1:

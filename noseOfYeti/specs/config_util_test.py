@@ -2,7 +2,7 @@ from should_dsl import should
 import fudge
 
 from noseOfYeti.tokeniser.config import Default, ConfigUtil, MissingConfigFile
-from helpers import a_temp_file
+from .helpers import a_temp_file
 
 # Silencing code checker about should_dsl matchers
 be = None
@@ -73,7 +73,7 @@ class Test_ConfigUtil_UsingOptions(object):
 		def extractor(templ, values):
 			templ |should| be(template)
 			for key, val in values.items():
-				yield "e-{}".format(key), val + 1
+				yield "e-{0}".format(key), val + 1
 
 		self.config_util.template = template
 		self.config_util.use_options({"a":1, "b":2, "c":3}, extractor=extractor)
